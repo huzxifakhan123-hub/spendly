@@ -1,8 +1,10 @@
 import sqlite3
+from functools import wraps
 
-from flask import Flask, abort, flash, redirect, render_template, request, url_for
+from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
+from werkzeug.security import check_password_hash
 
-from database.db import create_user, get_db, init_db, seed_db
+from database.db import create_user, get_db, get_user_by_email, init_db, seed_db
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key-change-in-production"
@@ -10,6 +12,20 @@ app.secret_key = "dev-secret-key-change-in-production"
 with app.app_context():
     init_db()
     seed_db()
+
+
+# ------------------------------------------------------------------ #
+# Helpers                                                             #
+# ------------------------------------------------------------------ #
+
+def login_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if "user_id" not in session:
+            flash("Please log in to continue.", "error")
+            return redirect(url_for("login"))
+        return view(*args, **kwargs)
+    return wrapped
 
 
 # ------------------------------------------------------------------ #
@@ -23,6 +39,9 @@ def landing():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    if "user_id" in session:
+        return redirect(url_for("landing"))
+
     if request.method == "GET":
         return render_template("register.html")
 
@@ -52,19 +71,43 @@ def register():
     return abort(405)
 
 
-@app.route("/login")
+@app.route("/login", methods=["GET", "POST"])
 def login():
-    return render_template("login.html")
+    if "user_id" in session:
+        return redirect(url_for("landing"))
+
+    if request.method == "GET":
+        return render_template("login.html")
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
+
+        user = get_user_by_email(email) if email else None
+
+        if not email or not password or not user or not check_password_hash(user["password_hash"], password):
+            flash("Invalid email or password.", "error")
+            return render_template("login.html")
+
+        session.clear()
+        session["user_id"] = user["id"]
+        flash("Welcome back!", "success")
+        return redirect(url_for("landing"))
+
+    return abort(405)
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    session.clear()
+    flash("You have been logged out.", "success")
+    return redirect(url_for("login"))
 
 
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
-
-@app.route("/logout")
-def logout():
-    return "Logout — coming in Step 3"
-
 
 @app.route("/profile")
 def profile():
