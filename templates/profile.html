@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Your Profile — Spendly{% endblock %}
+
+{% block content %}
+
+<section class="profile-section">
+
+    <div class="profile-header">
+        <div class="profile-avatar">{{ user.initials }}</div>
+        <div>
+            <h1 class="profile-name">{{ user.name }}</h1>
+            <p class="profile-email">{{ user.email }}</p>
+            <p class="profile-joined">Member since {{ user.joined }}</p>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        {% for stat in stats %}
+        <div class="stat-card">
+            <div class="mock-label">{{ stat.label }}</div>
+            <div class="mock-total">{{ stat.value }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="profile-panel">
+        <h2 class="panel-title">Recent transactions</h2>
+        <table class="tx-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                    <th class="tx-amount">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                <tr>
+                    <td>{{ tx.date }}</td>
+                    <td>{{ tx.description }}</td>
+                    <td><span class="category-badge {{ tx.badge }}">{{ tx.category }}</span></td>
+                    <td class="tx-amount">{{ tx.amount }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="profile-panel">
+        <h2 class="panel-title">Category breakdown</h2>
+        <div class="mock-bars">
+            {% for cat in categories %}
+            <div class="mock-bar-row">
+                <span class="mock-cat">{{ cat.name }}</span>
+                <div class="mock-bar-track">
+                    <div class="mock-bar {{ cat.bar_class }} {{ cat.width_class }}"></div>
+                </div>
+                <span class="mock-amt">{{ cat.amount }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</section>
+
+{% endblock %}
