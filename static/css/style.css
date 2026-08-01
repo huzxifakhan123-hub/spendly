@@ -630,10 +630,27 @@ a { color: inherit; text-decoration: none; }
 .category-badge-3 { background: #e7edf3; color: #5b7fa6; }
 .category-badge-4 { background: #f1e9ef; color: #8b5e83; }
 
-.bar-w-100 { width: 100%; }
-.bar-w-80 { width: 80%; }
-.bar-w-50 { width: 50%; }
+.bar-w-0 { width: 0%; }
+.bar-w-5 { width: 5%; }
+.bar-w-10 { width: 10%; }
+.bar-w-15 { width: 15%; }
+.bar-w-20 { width: 20%; }
+.bar-w-25 { width: 25%; }
+.bar-w-30 { width: 30%; }
+.bar-w-35 { width: 35%; }
 .bar-w-40 { width: 40%; }
+.bar-w-45 { width: 45%; }
+.bar-w-50 { width: 50%; }
+.bar-w-55 { width: 55%; }
+.bar-w-60 { width: 60%; }
+.bar-w-65 { width: 65%; }
+.bar-w-70 { width: 70%; }
+.bar-w-75 { width: 75%; }
+.bar-w-80 { width: 80%; }
+.bar-w-85 { width: 85%; }
+.bar-w-90 { width: 90%; }
+.bar-w-95 { width: 95%; }
+.bar-w-100 { width: 100%; }
 
 /* ------------------------------------------------------------------ */
 /* Responsive                                                          */

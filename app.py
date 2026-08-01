@@ -1,10 +1,12 @@
 import sqlite3
+from datetime import datetime
 from functools import wraps
 
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
-from database.db import create_user, get_db, get_user_by_email, init_db, seed_db
+from database.db import CATEGORIES, create_user, get_user_by_email, init_db, seed_db
+from database.queries import get_category_breakdown, get_recent_transactions, get_summary_stats, get_user_by_id
 
 app = Flask(__name__)
 app.secret_key = "dev-secret-key-change-in-production"
@@ -12,6 +14,10 @@ app.secret_key = "dev-secret-key-change-in-production"
 with app.app_context():
     init_db()
     seed_db()
+
+CATEGORY_BADGES = {
+    category: f"category-badge-{i % 4 + 1}" for i, category in enumerate(CATEGORIES)
+}
 
 
 # ------------------------------------------------------------------ #
@@ -26,6 +32,56 @@ def login_required(view):
             return redirect(url_for("login"))
         return view(*args, **kwargs)
     return wrapped
+
+
+def _initials(name):
+    words = name.split()[:2]
+    return "".join(word[0] for word in words).upper()
+
+
+def _build_transaction_history(user_id):
+    transactions = get_recent_transactions(user_id, limit=10)
+    result = []
+    for txn in transactions:
+        date = datetime.strptime(txn["date"], "%Y-%m-%d").strftime("%d %b %Y")
+        category = txn["category"]
+        result.append({
+            "date": date,
+            "description": txn["description"],
+            "category": category,
+            "amount": f"₹{txn['amount']:,.2f}",
+            "badge": CATEGORY_BADGES[category],
+        })
+    return result
+
+
+def _build_summary_stats(user_id):
+    data = get_summary_stats(user_id)
+    total_spent = data["total_spent"]
+    transaction_count = data["transaction_count"]
+    top_category = data["top_category"]
+    return [
+        {"label": "Total spent this month", "value": f"₹{total_spent:,.2f}"},
+        {"label": "Transactions", "value": str(transaction_count)},
+        {"label": "Top category", "value": top_category},
+    ]
+
+
+def _build_category_breakdown(user_id):
+    breakdown = get_category_breakdown(user_id)
+    if not breakdown:
+        return []
+
+    result = []
+    for item in breakdown:
+        pct = max(0, min(100, item["pct"]))
+        bucket = round(pct / 5) * 5
+        result.append({
+            "name": item["name"],
+            "amount": f"₹{item['amount']:,.2f}",
+            "width_class": f"bar-w-{bucket}",
+        })
+    return result
 
 
 # ------------------------------------------------------------------ #
@@ -110,33 +166,18 @@ def logout():
 @app.route("/profile")
 @login_required
 def profile():
+    user_id = session["user_id"]
+    user_row = get_user_by_id(user_id)
     user = {
-        "initials": "DU",
-        "name": "Demo User",
-        "email": "demo@spendly.com",
-        "joined": "January 2026",
+        "initials": _initials(user_row["name"]),
+        "name": user_row["name"],
+        "email": user_row["email"],
+        "joined": user_row["member_since"],
     }
 
-    stats = [
-        {"label": "Total spent this month", "value": "₹18,420"},
-        {"label": "Transactions", "value": "24"},
-        {"label": "Top category", "value": "Bills"},
-    ]
-
-    transactions = [
-        {"date": "26 Jul 2026", "description": "Groceries run", "category": "Food", "amount": "₹1,240", "badge": "category-badge-2"},
-        {"date": "24 Jul 2026", "description": "Fuel top-up", "category": "Transport", "amount": "₹2,000", "badge": "category-badge-3"},
-        {"date": "22 Jul 2026", "description": "Electricity bill", "category": "Bills", "amount": "₹3,150", "badge": "category-badge-1"},
-        {"date": "20 Jul 2026", "description": "Movie night", "category": "Entertainment", "amount": "₹850", "badge": "category-badge-4"},
-        {"date": "18 Jul 2026", "description": "Pharmacy", "category": "Health", "amount": "₹640", "badge": "category-badge-2"},
-    ]
-
-    categories = [
-        {"name": "Bills", "amount": "₹6,200", "bar_class": "", "width_class": "bar-w-100"},
-        {"name": "Food", "amount": "₹4,850", "bar_class": "mock-bar-2", "width_class": "bar-w-80"},
-        {"name": "Shopping", "amount": "₹3,100", "bar_class": "mock-bar-3", "width_class": "bar-w-50"},
-        {"name": "Transport", "amount": "₹2,400", "bar_class": "mock-bar-4", "width_class": "bar-w-40"},
-    ]
+    stats = _build_summary_stats(user_id)
+    transactions = _build_transaction_history(user_id)
+    categories = _build_category_breakdown(user_id)
 
     return render_template(
         "profile.html",
