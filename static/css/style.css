@@ -556,6 +556,68 @@ a { color: inherit; text-decoration: none; }
     margin-top: 0.15rem;
 }
 
+.filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.filter-link {
+    display: inline-block;
+    padding: 0.45rem 0.9rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ink-muted);
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+}
+
+.filter-link:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+}
+
+.filter-link.is-active {
+    background: var(--accent-light);
+    border-color: var(--accent-light);
+    color: var(--accent);
+}
+
+.filter-custom {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+}
+
+.filter-custom.is-active {
+    border-color: var(--accent);
+}
+
+.filter-date-input {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    color: var(--ink);
+    background: var(--paper);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.filter-date-input:focus { border-color: var(--accent); }
+
+.filter-apply {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.8rem;
+}
+
 .stats-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -676,4 +738,8 @@ a { color: inherit; text-decoration: none; }
 
     .profile-header { flex-direction: column; align-items: flex-start; text-align: left; }
     .tx-table { display: block; overflow-x: auto; white-space: nowrap; }
+
+    .filter-bar { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.25rem; }
+    .filter-link { flex-shrink: 0; }
+    .filter-custom { flex-shrink: 0; }
 }

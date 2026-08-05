@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expensio — Analytics Coming Soon</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/analytics.css') }}">
+</head>
+<body class="az-body">
+
+    <header class="az-header">
+        <div class="az-header-inner">
+            <div class="az-brand">
+                <span class="az-logo">$</span>
+                <span class="az-brand-name">Expensio</span>
+            </div>
+            <div class="az-badge">
+                <span class="az-badge-dot"></span>
+                IN DEVELOPMENT
+            </div>
+        </div>
+    </header>
+
+    <main class="az-main">
+
+        <section class="az-hero">
+            <div class="az-hero-copy">
+                <p class="az-eyebrow">Analytics · Coming Soon</p>
+                <h1 class="az-heading">See exactly where your <em>money goes.</em></h1>
+                <p class="az-desc">
+                    Deep analytics for your expenses — trends, forecasts, and smart alerts — are landing soon.
+                    Be first in line when we ship.
+                </p>
+
+                <form class="az-waitlist-form" id="waitlistForm">
+                    <input
+                        type="email"
+                        required
+                        placeholder="your@email.com"
+                        class="az-email-input"
+                        id="emailInput"
+                        name="email"
+                    >
+                    <button type="submit" class="az-submit-btn">Notify me</button>
+                </form>
+
+                <div class="az-confirm" id="confirmMsg" hidden>
+                    <span class="az-check">✓</span>
+                    <span>You're on the list! We'll notify you at <strong id="confirmEmail"></strong>.</span>
+                </div>
+
+                <p class="az-waitlist-count">
+                    <span class="az-count-num">{{ "{:,}".format(waitlist_count) }}</span>
+                    people already on the waitlist · No spam, ever.
+                </p>
+            </div>
+
+            <div class="az-preview-card">
+                <div class="az-preview-top">
+                    <span class="az-preview-label">SPENDING · AUG 2026</span>
+                    <span class="az-preview-tag">PREVIEW</span>
+                </div>
+
+                <div>
+                    <div class="az-blur-total">$4,821.50</div>
+                    <div class="az-preview-sub">total this month</div>
+                </div>
+
+                <div class="az-bar-chart">
+                    {% for bar in bars %}
+                    <div class="az-bar az-bar-shade-{{ bar.shade }}" style="height: {{ bar.height }}%"></div>
+                    {% endfor %}
+                    <div class="az-frost"></div>
+                    <div class="az-lock-overlay"><span class="az-lock-pill">LOCKED · COMING SOON</span></div>
+                </div>
+
+                <div class="az-mini-stats">
+                    <div class="az-mini-stat">
+                        <div class="az-blur-val">$1,240</div>
+                        <div class="az-mini-label">Food &amp; Dining</div>
+                    </div>
+                    <div class="az-mini-stat">
+                        <div class="az-blur-val">$380</div>
+                        <div class="az-mini-label">Transport</div>
+                    </div>
+                    <div class="az-mini-stat">
+                        <div class="az-blur-val">$142</div>
+                        <div class="az-mini-label">Subscriptions</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="az-divider"></div>
+
+        <section class="az-features-section">
+            <div class="az-features-head">
+                <h2 class="az-section-title">What's coming</h2>
+                <span class="az-quarter-tag">Q4 2026</span>
+            </div>
+
+            <div class="az-features-grid">
+                {% for f in features %}
+                <div class="az-feature-card">
+                    <div class="az-lock-badge">⌀ LOCKED</div>
+
+                    <div class="az-feature-top">
+                        <div class="az-feature-icon">{{ f.icon }}</div>
+                        <div>
+                            <div class="az-feature-name">{{ f.label }}</div>
+                            <p class="az-feature-desc">{{ f.desc }}</p>
+                        </div>
+                    </div>
+
+                    {% if f.chart %}
+                    <div class="az-line-chart">
+                        <svg viewBox="0 0 280 80" preserveAspectRatio="none" class="az-line-svg">
+                            <defs>
+                                <linearGradient id="lineGrad{{ loop.index }}" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#166534" stop-opacity="0.25"/>
+                                    <stop offset="100%" stop-color="#166534" stop-opacity="0"/>
+                                </linearGradient>
+                            </defs>
+                            <polyline fill="none" stroke="#166534" stroke-width="1.5" points="{{ line_points }}" opacity="0.7"/>
+                            <polygon fill="url(#lineGrad{{ loop.index }})" points="0,80 {{ line_points }} 280,80"/>
+                        </svg>
+                        <div class="az-frost"></div>
+                    </div>
+                    {% endif %}
+
+                    <div class="az-feature-stat-row">
+                        <span class="az-blur-stat">{{ f.stat }}</span>
+                        <span class="az-stat-label">{{ f.stat_label }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="az-cta">
+            <p class="az-cta-eyebrow">Early Access</p>
+            <h2 class="az-cta-title">Get analytics before everyone else.</h2>
+            <p class="az-cta-desc">
+                Early access members also get a 30-day free trial and a direct line to our product team.
+            </p>
+            <button class="az-cta-btn" id="ctaBtn" type="button">Join the waitlist →</button>
+            <div class="az-cta-confirm" id="ctaConfirm" hidden>✓ You're on the waitlist</div>
+        </section>
+
+    </main>
+
+    <footer class="az-footer">
+        <span class="az-footer-copy">© 2026 Expensio</span>
+        <span>Analytics · In Development</span>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+</body>
+</html>

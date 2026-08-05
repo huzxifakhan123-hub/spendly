@@ -15,6 +15,20 @@
         </div>
     </div>
 
+    <div class="filter-bar">
+        <a href="{{ url_for('profile') }}" class="filter-link {{ 'is-active' if filters.active == 'all' }}">All time</a>
+        <a href="{{ url_for('profile', range='this_month') }}" class="filter-link {{ 'is-active' if filters.active == 'this_month' }}">This month</a>
+        <a href="{{ url_for('profile', range='last_month') }}" class="filter-link {{ 'is-active' if filters.active == 'last_month' }}">Last month</a>
+        <a href="{{ url_for('profile', range='7_days') }}" class="filter-link {{ 'is-active' if filters.active == '7_days' }}">Last 7 days</a>
+        <a href="{{ url_for('profile', range='30_days') }}" class="filter-link {{ 'is-active' if filters.active == '30_days' }}">Last 30 days</a>
+        <form class="filter-custom {{ 'is-active' if filters.active == 'custom' }}" method="get" action="{{ url_for('profile') }}">
+            <input type="hidden" name="range" value="custom">
+            <input type="date" name="start" value="{{ filters.start }}" class="filter-date-input" required>
+            <input type="date" name="end" value="{{ filters.end }}" class="filter-date-input" required>
+            <button type="submit" class="btn-ghost filter-apply">Apply</button>
+        </form>
+    </div>
+
     <div class="stats-row">
         {% for stat in stats %}
         <div class="stat-card">
