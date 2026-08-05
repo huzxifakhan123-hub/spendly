@@ -420,6 +420,13 @@ a { color: inherit; text-decoration: none; }
     margin-bottom: 1.25rem;
 }
 
+.form-optional {
+    font-weight: 400;
+    color: var(--ink-faint);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
 .form-group { margin-bottom: 1.25rem; }
 
 .form-group label {
@@ -556,6 +563,27 @@ a { color: inherit; text-decoration: none; }
     margin-top: 0.15rem;
 }
 
+.flash-messages { margin-bottom: 1.5rem; }
+
+.flash-message {
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    margin-bottom: 0.75rem;
+}
+
+.flash-message:last-child { margin-bottom: 0; }
+
+.flash-success {
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.flash-error {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
 .filter-bar {
     display: flex;
     flex-wrap: wrap;
@@ -639,6 +667,28 @@ a { color: inherit; text-decoration: none; }
     padding: 2rem;
     margin-bottom: 2rem;
 }
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.panel-header .panel-title { margin-bottom: 0; }
+
+.panel-action {
+    display: inline-block;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: var(--accent);
+    color: var(--paper);
+    border-radius: var(--radius-sm);
+    transition: opacity 0.2s;
+}
+
+.panel-action:hover { opacity: 0.85; }
 
 .panel-title {
     font-family: var(--font-display);

@@ -1,3 +1,4 @@
+import math
 import sqlite3
 from datetime import date, datetime, timedelta
 from functools import wraps
@@ -5,7 +6,7 @@ from functools import wraps
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
-from database.db import CATEGORIES, create_user, get_user_by_email, init_db, seed_db
+from database.db import CATEGORIES, create_expense, create_user, get_user_by_email, init_db, seed_db
 from database.queries import get_category_breakdown, get_recent_transactions, get_summary_stats, get_user_by_id
 
 app = Flask(__name__)
@@ -293,14 +294,47 @@ def profile():
     )
 
 
+@app.route("/expenses/add", methods=["GET", "POST"])
+@login_required
+def add_expense():
+    if request.method == "GET":
+        form = {"amount": "", "category": "", "date": date.today().isoformat(), "description": ""}
+        return render_template("add_expense.html", categories=CATEGORIES, form=form)
+
+    amount_raw = request.form.get("amount", "").strip()
+    category = request.form.get("category", "").strip()
+    date_raw = request.form.get("date", "").strip()
+    description = request.form.get("description", "").strip()
+
+    form = {"amount": amount_raw, "category": category, "date": date_raw, "description": description}
+
+    try:
+        amount = float(amount_raw)
+    except ValueError:
+        amount = None
+
+    if amount is None or not math.isfinite(amount) or amount <= 0:
+        flash("Enter a valid amount greater than 0.", "error")
+        return render_template("add_expense.html", categories=CATEGORIES, form=form)
+
+    if category not in CATEGORIES:
+        flash("Select a valid category.", "error")
+        return render_template("add_expense.html", categories=CATEGORIES, form=form)
+
+    try:
+        expense_date = datetime.strptime(date_raw, "%Y-%m-%d").date().isoformat()
+    except ValueError:
+        flash("Enter a valid date.", "error")
+        return render_template("add_expense.html", categories=CATEGORIES, form=form)
+
+    create_expense(session["user_id"], round(amount, 2), category, expense_date, description)
+    flash("Expense added.", "success")
+    return redirect(url_for("profile"))
+
+
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
-
-
-@app.route("/expenses/add")
-def add_expense():
-    return "Add expense — coming in Step 7"
 
 
 @app.route("/expenses/<int:id>/edit")
