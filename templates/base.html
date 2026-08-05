@@ -19,6 +19,7 @@
                 <span class="brand-name">Spendly</span>
             </a>
             <div class="nav-links">
+                <a href="{{ url_for('analytics') }}">Analytics</a>
                 {% if session.user_id %}
                 <a href="{{ url_for('logout') }}">Logout</a>
                 {% else %}

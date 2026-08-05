@@ -1,11 +1,12 @@
+import math
 import sqlite3
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from functools import wraps
 
 from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash
 
-from database.db import CATEGORIES, create_user, get_user_by_email, init_db, seed_db
+from database.db import CATEGORIES, create_expense, create_user, get_user_by_email, init_db, seed_db
 from database.queries import get_category_breakdown, get_recent_transactions, get_summary_stats, get_user_by_id
 
 app = Flask(__name__)
@@ -18,6 +19,44 @@ with app.app_context():
 CATEGORY_BADGES = {
     category: f"category-badge-{i % 4 + 1}" for i, category in enumerate(CATEGORIES)
 }
+
+ANALYTICS_BAR_HEIGHTS = [42, 68, 55, 90, 73, 61, 88, 50, 77, 65, 82, 59]
+ANALYTICS_LINE_VALUES = [30, 45, 38, 62, 55, 70, 58, 80, 73, 88, 76, 94]
+
+ANALYTICS_FEATURES = [
+    {
+        "icon": "◈",
+        "label": "Spending Trends",
+        "desc": "Weekly and monthly breakdowns with velocity indicators and anomaly detection.",
+        "stat": "+$2,340",
+        "stat_label": "avg. monthly tracked",
+        "chart": True,
+    },
+    {
+        "icon": "⬡",
+        "label": "Category Breakdown",
+        "desc": "Visual sunburst of where every dollar goes — groceries, rent, subscriptions, and more.",
+        "stat": "14",
+        "stat_label": "tracked categories",
+        "chart": False,
+    },
+    {
+        "icon": "◉",
+        "label": "Budget Forecasting",
+        "desc": "ML-powered projections that learn your patterns and warn before you overspend.",
+        "stat": "94%",
+        "stat_label": "forecast accuracy",
+        "chart": True,
+    },
+    {
+        "icon": "⬔",
+        "label": "Smart Alerts",
+        "desc": "Real-time push alerts when unusual charges appear or budgets hit 80%.",
+        "stat": "< 3s",
+        "stat_label": "alert latency",
+        "chart": False,
+    },
+]
 
 
 # ------------------------------------------------------------------ #
@@ -39,8 +78,37 @@ def _initials(name):
     return "".join(word[0] for word in words).upper()
 
 
-def _build_transaction_history(user_id):
-    transactions = get_recent_transactions(user_id, limit=10)
+def _resolve_date_range(range_key, start_raw, end_raw):
+    today = date.today()
+
+    if range_key == "this_month":
+        return today.replace(day=1).isoformat(), today.isoformat(), "this_month"
+
+    if range_key == "last_month":
+        last_day_prev = today.replace(day=1) - timedelta(days=1)
+        return last_day_prev.replace(day=1).isoformat(), last_day_prev.isoformat(), "last_month"
+
+    if range_key == "7_days":
+        return (today - timedelta(days=6)).isoformat(), today.isoformat(), "7_days"
+
+    if range_key == "30_days":
+        return (today - timedelta(days=29)).isoformat(), today.isoformat(), "30_days"
+
+    if range_key == "custom" and start_raw and end_raw:
+        try:
+            start = datetime.strptime(start_raw, "%Y-%m-%d").date()
+            end = datetime.strptime(end_raw, "%Y-%m-%d").date()
+        except ValueError:
+            return None, None, "all"
+        if start > end:
+            return None, None, "all"
+        return start.isoformat(), end.isoformat(), "custom"
+
+    return None, None, "all"
+
+
+def _build_transaction_history(user_id, start_date=None, end_date=None):
+    transactions = get_recent_transactions(user_id, limit=10, start_date=start_date, end_date=end_date)
     result = []
     for txn in transactions:
         date = datetime.strptime(txn["date"], "%Y-%m-%d").strftime("%d %b %Y")
@@ -55,8 +123,8 @@ def _build_transaction_history(user_id):
     return result
 
 
-def _build_summary_stats(user_id):
-    data = get_summary_stats(user_id)
+def _build_summary_stats(user_id, start_date=None, end_date=None):
+    data = get_summary_stats(user_id, start_date=start_date, end_date=end_date)
     total_spent = data["total_spent"]
     transaction_count = data["transaction_count"]
     top_category = data["top_category"]
@@ -67,8 +135,18 @@ def _build_summary_stats(user_id):
     ]
 
 
-def _build_category_breakdown(user_id):
-    breakdown = get_category_breakdown(user_id)
+def _svg_line_points(values, width=280, height=80):
+    count = len(values)
+    points = []
+    for i, value in enumerate(values):
+        x = (i / (count - 1)) * width
+        y = height - (value / 100) * height
+        points.append(f"{x:.1f},{y:.1f}")
+    return " ".join(points)
+
+
+def _build_category_breakdown(user_id, start_date=None, end_date=None):
+    breakdown = get_category_breakdown(user_id, start_date=start_date, end_date=end_date)
     if not breakdown:
         return []
 
@@ -163,6 +241,21 @@ def logout():
     return redirect(url_for("login"))
 
 
+@app.route("/analytics")
+def analytics():
+    bars = [
+        {"height": height, "shade": i % 3}
+        for i, height in enumerate(ANALYTICS_BAR_HEIGHTS)
+    ]
+    return render_template(
+        "analytics.html",
+        bars=bars,
+        line_points=_svg_line_points(ANALYTICS_LINE_VALUES),
+        features=ANALYTICS_FEATURES,
+        waitlist_count=1247,
+    )
+
+
 @app.route("/profile")
 @login_required
 def profile():
@@ -175,9 +268,21 @@ def profile():
         "joined": user_row["member_since"],
     }
 
-    stats = _build_summary_stats(user_id)
-    transactions = _build_transaction_history(user_id)
-    categories = _build_category_breakdown(user_id)
+    start_date, end_date, active_range = _resolve_date_range(
+        request.args.get("range", "all"),
+        request.args.get("start"),
+        request.args.get("end"),
+    )
+
+    stats = _build_summary_stats(user_id, start_date, end_date)
+    transactions = _build_transaction_history(user_id, start_date, end_date)
+    categories = _build_category_breakdown(user_id, start_date, end_date)
+
+    filters = {
+        "active": active_range,
+        "start": start_date if active_range == "custom" else "",
+        "end": end_date if active_range == "custom" else "",
+    }
 
     return render_template(
         "profile.html",
@@ -185,17 +290,51 @@ def profile():
         stats=stats,
         transactions=transactions,
         categories=categories,
+        filters=filters,
     )
+
+
+@app.route("/expenses/add", methods=["GET", "POST"])
+@login_required
+def add_expense():
+    if request.method == "GET":
+        form = {"amount": "", "category": "", "date": date.today().isoformat(), "description": ""}
+        return render_template("add_expense.html", categories=CATEGORIES, form=form)
+
+    amount_raw = request.form.get("amount", "").strip()
+    category = request.form.get("category", "").strip()
+    date_raw = request.form.get("date", "").strip()
+    description = request.form.get("description", "").strip()
+
+    form = {"amount": amount_raw, "category": category, "date": date_raw, "description": description}
+
+    try:
+        amount = float(amount_raw)
+    except ValueError:
+        amount = None
+
+    if amount is None or not math.isfinite(amount) or amount <= 0:
+        flash("Enter a valid amount greater than 0.", "error")
+        return render_template("add_expense.html", categories=CATEGORIES, form=form)
+
+    if category not in CATEGORIES:
+        flash("Select a valid category.", "error")
+        return render_template("add_expense.html", categories=CATEGORIES, form=form)
+
+    try:
+        expense_date = datetime.strptime(date_raw, "%Y-%m-%d").date().isoformat()
+    except ValueError:
+        flash("Enter a valid date.", "error")
+        return render_template("add_expense.html", categories=CATEGORIES, form=form)
+
+    create_expense(session["user_id"], round(amount, 2), category, expense_date, description)
+    flash("Expense added.", "success")
+    return redirect(url_for("profile"))
 
 
 # ------------------------------------------------------------------ #
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
-
-
-@app.route("/expenses/add")
-def add_expense():
-    return "Add expense — coming in Step 7"
 
 
 @app.route("/expenses/<int:id>/edit")
